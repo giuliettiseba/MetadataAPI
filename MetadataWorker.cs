@@ -32,9 +32,9 @@ namespace MetadataAPI
             Direction _direction = Direction.Near;                                                  // Find the first transverse the rest with GetPrev and GetNext
             Direction __direction = (Direction)Enum.Parse(typeof(Direction), direction);
 
-            DateTime _startTime = (startTime == null) ? DateTime.UtcNow : ((DateTime) startTime).ToUniversalTime();
+            DateTime _startTimeUtc = (startTime == null) ? DateTime.UtcNow : ((DateTime)startTime).ToUniversalTime();
 
-            DateTime endTime = (__direction == Direction.Backward) ? _startTime.Add(new TimeSpan(0, -minutes, 0)) : _startTime.Add(new TimeSpan(0, minutes, 0));
+            DateTime _endTimeUtc = (__direction == Direction.Backward) ? _startTimeUtc.Add(new TimeSpan(0, -minutes, 0)) : _startTimeUtc.Add(new TimeSpan(0, minutes, 0));
 
             var selectedItem = SelectItem(deviceGuid);                                              // *Select metadata device* if is a camara select related metadata, if metadata just select it
 
@@ -58,26 +58,28 @@ namespace MetadataAPI
                 foreach (Frame frame in frames)                                                                     // For each frame
                     foreach (OnvifObject onvifObject in frame.Objects)                                              // For each object
                         if (!uniqueValues || !objectIds.ContainsKey(onvifObject.ObjectId))                          // If unique values is true, check that the objectId is not in the aux dic
+                        {
+                            if (uniqueValues) objectIds.Add(onvifObject.ObjectId, true);                                              // Add objectId to dictionary
                             if (candidateTypes.FirstOrDefault() == null)                                            // If no classType has been provided
                             {
                                 metadataStreams.Add(metadataStream);                // Add metadatastream to the output list 
-                                objectIds.Add(onvifObject.ObjectId, true);          // Add objectId to dictionary
                             }
                             else if (onvifObject?.Appearance?.Class?.ClassCandidates != null)                               // is an Analytic object ?
                                 foreach (ClassCandidate classCandidate in onvifObject.Appearance.Class.ClassCandidates)     // For each candidate add a new metadataStream to the output (?????) TODO: this should be on the same output object
                                     if (candidateTypes.Contains(classCandidate.Type))                                       // Is the candidate in the list of passed candidates 
                                     {
                                         metadataStreams.Add(metadataStream);            // Add metadatastream to the output list 
-                                        objectIds.Add(onvifObject.ObjectId, true);      // Add objectId to dictionary
                                     }
-
+                        }
                 _direction = __direction;                                                                               // Set direction // TODO: Improve
 
 
-                condition = CutCondition(endTime, maxItems, metadataStreams, metadataPlaybackData);                     // Evaluate cut condition 
+                condition = CutCondition(_endTimeUtc, maxItems, metadataStreams, metadataPlaybackData, _direction);                     // Evaluate cut condition 
             }
             while (condition);
 
+            if (_direction == Direction.Forward) metadataStreams.Reverse();
+            
             return metadataStreams;
         }
 
@@ -90,11 +92,16 @@ namespace MetadataAPI
         /// <param name="metadata"></param>
         /// <param name="metadataPlaybackData"></param>
         /// <returns></returns>
-        private static bool CutCondition(DateTime endTime, int maxItems, List<MetadataStream> metadata, MetadataPlaybackData metadataPlaybackData)
+        private static bool CutCondition(DateTime endTime, int maxItems, List<MetadataStream> metadata, MetadataPlaybackData metadataPlaybackData, Direction direction)
         {
             return !(metadata.Count >= maxItems) &&
-                !(endTime.CompareTo(metadataPlaybackData.DateTime) > 0) &&
+                isEndTimeReached(endTime, metadataPlaybackData, direction) &&
                 metadataPlaybackData.PreviousDateTime != null;
+        }
+
+        private static bool isEndTimeReached(DateTime endTime, MetadataPlaybackData metadataPlaybackData, Direction direction)
+        {
+            return direction == Direction.Backward ? endTime.CompareTo(metadataPlaybackData.DateTime) <= 0 : endTime.CompareTo(metadataPlaybackData.DateTime) > 0;
         }
 
         /// <summary>

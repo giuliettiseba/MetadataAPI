@@ -11,6 +11,7 @@ namespace MetadataAPI
     public static class ConnectionManager
     {
 
+        private static readonly string hostname = "demo.milestonesys.com";
         //private static readonly string hostname = "http://10.1.0.21";
         private static readonly bool secureOnly = false;
 
