@@ -15,16 +15,19 @@ namespace MetadataAPI
             Human,
             Vehicle,
             Animal,
-            Car
-            
+            LicensePlate,
+            Car,
+            Truck,
+
+
         }
 
 
         public enum Direction
         {
             Near,
-            Next,
-            Prev
+            Forward,
+            Backward
         }
 
     }

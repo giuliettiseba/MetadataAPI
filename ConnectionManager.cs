@@ -11,7 +11,7 @@ namespace MetadataAPI
     public static class ConnectionManager
     {
 
-        private static readonly string hostname = "http://10.1.0.21";
+        //private static readonly string hostname = "http://10.1.0.21";
         private static readonly bool secureOnly = false;
 
         private static readonly Guid IntegrationId = new Guid("FF0B9F27-A2C2-4720-989B-159AA1597BB1");
